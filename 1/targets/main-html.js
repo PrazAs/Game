@@ -6647,7 +6647,7 @@ urgame_Main.__name__ = true;
 urgame_Main.main = function() {
 	flambe_System.init();
 	var preloader = new flambe_Entity();
-	var preloaderHeight = 5;
+	var preloaderHeight = 2;
 	preloader.add(new flambe_display_FillSprite(16777215,flambe_System.get_stage().get_width(),preloaderHeight));
 	((function($this) {
 		var $r;
@@ -6665,7 +6665,7 @@ urgame_Main.main = function() {
 	var manifest = flambe_asset_Manifest.fromAssets("bootstrap");
 	var loader = flambe_System.loadAssetPack(manifest);
 	loader.progressChanged.connect(function() {
-		preloader.add(new flambe_display_FillSprite(255,loader.get_progress() / loader.get_total() * (flambe_System.get_stage().get_width() - 100),preloaderHeight));
+		preloader.add(new flambe_display_FillSprite(255,loader.get_progress() / loader.get_total() * flambe_System.get_stage().get_width(),preloaderHeight));
 		((function($this) {
 			var $r;
 			var component2 = preloader.getComponent("Sprite_4");
@@ -6680,58 +6680,11 @@ urgame_Main.main = function() {
 		}(this))).y.set__(flambe_System.get_stage().get_height() * 0.5 - flambe_display_Sprite.getBounds(preloader).height * 0.5);
 	});
 	loader.get(urgame_Main.onSuccess);
-	var manifestFonts = flambe_asset_Manifest.fromAssets("fonts");
-	var loaderFont = flambe_System.loadAssetPack(manifestFonts);
-	loaderFont.progressChanged.connect(function() {
-		preloader.add(new flambe_display_FillSprite(255,flambe_System.get_stage().get_width() - 100 + loader.get_progress() / loader.get_total() * 100,preloaderHeight));
-		((function($this) {
-			var $r;
-			var component4 = preloader.getComponent("Sprite_4");
-			$r = component4;
-			return $r;
-		}(this))).x.set__(0);
-		((function($this) {
-			var $r;
-			var component5 = preloader.getComponent("Sprite_4");
-			$r = component5;
-			return $r;
-		}(this))).y.set__(flambe_System.get_stage().get_height() * 0.5 - flambe_display_Sprite.getBounds(preloader).height * 0.5);
-		if(loaderFont.get_progress() == loaderFont.get_total()) urgame_Main.init();
-	});
-	loaderFont.get(urgame_Main.onSuccessFont);
-};
-urgame_Main.onSuccessFont = function(pack) {
-	urgame_Main.fontAssetPack = pack;
-	urgame_Main.font = new flambe_display_Font(urgame_Main.fontAssetPack,"Arial");
-	urgame_Main.loadedPacks++;
-	console.log(Std.string((function($this) {
-		var $r;
-		var $int = urgame_Main.loadedPacks;
-		$r = $int < 0?4294967296.0 + $int:$int + 0.0;
-		return $r;
-	}(this))));
-	if((function($this) {
-		var $r;
-		var int1 = urgame_Main.loadedPacks;
-		$r = int1 < 0?4294967296.0 + int1:int1 + 0.0;
-		return $r;
-	}(this)) == 2) urgame_Main.init(); else null;
 };
 urgame_Main.onSuccess = function(pack) {
 	urgame_Main.assetPack = pack;
-	urgame_Main.loadedPacks++;
-	console.log(Std.string((function($this) {
-		var $r;
-		var $int = urgame_Main.loadedPacks;
-		$r = $int < 0?4294967296.0 + $int:$int + 0.0;
-		return $r;
-	}(this))));
-	if((function($this) {
-		var $r;
-		var int1 = urgame_Main.loadedPacks;
-		$r = int1 < 0?4294967296.0 + int1:int1 + 0.0;
-		return $r;
-	}(this)) == 2) urgame_Main.init(); else null;
+	urgame_Main.font = new flambe_display_Font(urgame_Main.assetPack,"fonts/Arial");
+	urgame_Main.init();
 };
 urgame_Main.init = function() {
 	console.log(flambe_System.get_stage().get_width() + ":" + flambe_System.get_stage().get_height());
@@ -6886,7 +6839,7 @@ flambe_System.volume = new flambe_animation_AnimatedFloat(1);
 flambe_System._platform = flambe_platform_html_HtmlPlatform.instance;
 flambe_System._calledInit = false;
 flambe_Log.logger = flambe_System.createLogger("flambe");
-flambe_asset_Manifest.__meta__ = { obj : { assets : [{ fonts : [{ bytes : 744, md5 : "abe48661625426bc379b115b1b1c163f", name : "Arial.bmfc"},{ bytes : 62781, md5 : "a846e319f4a9656b1e1c364e100d9878", name : "Arial.fnt"},{ bytes : 51674, md5 : "c8c5ade18141e62cd89a7a7df421bf07", name : "Arial_0.png"}], bootstrap : [{ bytes : 174759, md5 : "0d9b2688c0519c631582fed77694938c", name : "background.png"},{ bytes : 14362, md5 : "e1596bccd504f6c6a78888500ba6ffbb", name : "balloon.png"},{ bytes : 2797, md5 : "a50625a21376f53b87e52b128aa96d4c", name : "balloonparticle.png"},{ bytes : 14821, md5 : "c501b67d6ac761a60eeba5b8e80ef7c4", name : "BaloonAnim/atlas0.png"},{ bytes : 22686, md5 : "d4f2560824c38a30982d4f8d7bf2593e", name : "BaloonAnim/library.json"},{ bytes : 32, md5 : "84e2cc9cd070375d953c0bcf19696cc1", name : "BaloonAnim/md5"},{ bytes : 1, md5 : "003d62073d0b493a14427a45413fc595", name : "BaloonAnim/version"},{ bytes : 7701, md5 : "519b3c48412a582296c9076f874a1d83", name : "BaloonAnim.assets/images/Bitmap 1.png.png"},{ bytes : 7701, md5 : "519b3c48412a582296c9076f874a1d83", name : "gameover.png"},{ bytes : 10428, md5 : "644e80c0ef3c9f60d786f503caea8b89", name : "QuestionBoard@2x.png"},{ bytes : 11621, md5 : "efe0b06b7ab09b2aba72c9f3188fe2c7", name : "ScoreBoard@2x.png"},{ bytes : 11572, md5 : "02f99231f1b810e18a11a879da857ef9", name : "sounds/slip.wav"},{ bytes : 22478, md5 : "b08f472c1455045ac1c20711a7d5ab6a", name : "sounds/sound.wav"},{ bytes : 17674, md5 : "545dcca886b73d01fad95ef4256883e5", name : "TamamaSmall@2x.png"}], json : [{ bytes : 23058, md5 : "796b9ee5c950a2f9f28eca97f13bdbdd", name : "questions.json"}]}]}};
+flambe_asset_Manifest.__meta__ = { obj : { assets : [{ bootstrap : [{ bytes : 174759, md5 : "0d9b2688c0519c631582fed77694938c", name : "background.png"},{ bytes : 14362, md5 : "e1596bccd504f6c6a78888500ba6ffbb", name : "balloon.png"},{ bytes : 2797, md5 : "a50625a21376f53b87e52b128aa96d4c", name : "balloonparticle.png"},{ bytes : 14821, md5 : "c501b67d6ac761a60eeba5b8e80ef7c4", name : "BaloonAnim/atlas0.png"},{ bytes : 22686, md5 : "d4f2560824c38a30982d4f8d7bf2593e", name : "BaloonAnim/library.json"},{ bytes : 32, md5 : "84e2cc9cd070375d953c0bcf19696cc1", name : "BaloonAnim/md5"},{ bytes : 1, md5 : "003d62073d0b493a14427a45413fc595", name : "BaloonAnim/version"},{ bytes : 7701, md5 : "519b3c48412a582296c9076f874a1d83", name : "BaloonAnim.assets/images/Bitmap 1.png.png"},{ bytes : 744, md5 : "abe48661625426bc379b115b1b1c163f", name : "fonts/Arial.bmfc"},{ bytes : 62781, md5 : "a846e319f4a9656b1e1c364e100d9878", name : "fonts/Arial.fnt"},{ bytes : 51674, md5 : "c8c5ade18141e62cd89a7a7df421bf07", name : "fonts/Arial_0.png"},{ bytes : 7701, md5 : "519b3c48412a582296c9076f874a1d83", name : "gameover.png"},{ bytes : 10428, md5 : "644e80c0ef3c9f60d786f503caea8b89", name : "QuestionBoard@2x.png"},{ bytes : 11621, md5 : "efe0b06b7ab09b2aba72c9f3188fe2c7", name : "ScoreBoard@2x.png"},{ bytes : 11572, md5 : "02f99231f1b810e18a11a879da857ef9", name : "sounds/slip.wav"},{ bytes : 22478, md5 : "b08f472c1455045ac1c20711a7d5ab6a", name : "sounds/sound.wav"},{ bytes : 17674, md5 : "545dcca886b73d01fad95ef4256883e5", name : "TamamaSmall@2x.png"}], json : [{ bytes : 23058, md5 : "796b9ee5c950a2f9f28eca97f13bdbdd", name : "questions.json"}]}]}};
 flambe_asset_Manifest._supportsCrossOrigin = (function() {
 	var detected = (function() {
 		if(js_Browser.get_navigator().userAgent.indexOf("Linux; U; Android") >= 0) return false;
@@ -6912,7 +6865,6 @@ flambe_platform_html_HtmlUtil.SHOULD_HIDE_MOBILE_BROWSER = js_Browser.get_window
 flambe_platform_html_WebAudioSound._detectSupport = true;
 flambe_platform_html_WebGLGraphics._scratchMatrix = new flambe_math_Matrix();
 urgame_Constants.padding = 10;
-urgame_Main.loadedPacks = 0;
 urgame_Signals.startGame = new flambe_util_Signal0();
 urgame_Signals.gameOver = new flambe_util_Signal0();
 urgame_Signals.checkAnswer = new flambe_util_Signal0();
