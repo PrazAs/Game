@@ -5807,6 +5807,9 @@ flambe_util_Promise.prototype = {
 		}
 		return this.success.connect(fn).once();
 	}
+	,get_progress: function() {
+		return this._progress;
+	}
 	,set_progress: function(progress) {
 		if(this._progress != progress) {
 			this._progress = progress;
@@ -6162,6 +6165,9 @@ urgame_Balloon.prototype = $extend(flambe_Component.prototype,{
 		}(this))).get_pointerDown().connect($bind(this,this.handleTouch)).once();
 		urgame_Signals.popBalloon.connect($bind(this,this.mapBalloon));
 	}
+	,setSpeed: function(speed) {
+		this.speed = speed;
+	}
 	,handleTouch: function(events) {
 		this.touchPointX = events.viewX;
 		this.touchPointY = events.viewY;
@@ -6356,7 +6362,9 @@ var urgame_Constants = function() { };
 $hxClasses["urgame.Constants"] = urgame_Constants;
 urgame_Constants.__name__ = true;
 var urgame_Game = function() {
-	this.qArea = new flambe_display_FillSprite(16777215,flambe_System.get_stage().get_width(),100);
+	this.changeInSpeed = 0.1;
+	this.balloonSpeed = 0.75;
+	this.livesEntity = new flambe_Entity();
 	this.showNextQuestion = 0;
 	this.playerScore = 0;
 	flambe_Component.call(this);
@@ -6370,27 +6378,38 @@ urgame_Game.prototype = $extend(flambe_Component.prototype,{
 		return "Game_0";
 	}
 	,init: function() {
+		this.currentLevel = 1;
 		this.background = new flambe_display_ImageSprite(urgame_Main.assetPack.getTexture("background"));
 		flambe_System.root.addChild(new flambe_Entity().add(this.background));
 		this.questionArea = new urgame_QuestionArea();
 		this.questionArea.loadQuestions();
 		this.scoreArea = new flambe_Entity();
-		this.scoreSprite = new flambe_display_TextSprite(urgame_Main.font,"Score : " + Std.string((function($this) {
+		this.scoreSprite = new flambe_display_TextSprite(urgame_Main.font,"" + Std.string((function($this) {
 			var $r;
 			var $int = $this.playerScore;
 			$r = $int < 0?4294967296.0 + $int:$int + 0.0;
 			return $r;
 		}(this))));
+		this.gameOverEntity = new flambe_Entity();
+		this.gameOverImage = new flambe_display_ImageSprite(urgame_Main.assetPack.getTexture("gameover"));
+		this.gameOverImage.x.set__(flambe_System.get_stage().get_width() * 0.5 - this.gameOverImage.texture.get_width() * 0.5);
+		this.gameOverImage.y.set__(flambe_System.get_stage().get_height() * 0.5 - this.gameOverImage.texture.get_height() * 0.5);
+		this.gameOverEntity.add(this.gameOverImage);
 		urgame_Signals.startGame.connect($bind(this,this.startGameLoop)).once();
 		urgame_Signals.gameOver.connect($bind(this,this.endGame)).once();
 	}
 	,startGameLoop: function() {
-		this.createBalloons();
+		this.createLives();
 		this.showScore();
 		this.showQuestion();
+		this.createBalloons();
+	}
+	,createLives: function() {
+		this.lives = new urgame_Lives();
+		flambe_System.root.addChild(this.livesEntity.add(this.lives));
+		this.lives.displayLives();
 	}
 	,createBalloons: function() {
-		this.currentQuestion = this.questionArea.displayNextQ();
 		if(this.currentQuestion != null) {
 			this.currentAnswers = this.currentQuestion.answers;
 			var areaForBalloon = flambe_System.get_stage().get_width() / this.currentAnswers.length;
@@ -6420,13 +6439,19 @@ urgame_Game.prototype = $extend(flambe_Component.prototype,{
 					balloonBehaviour.height = rect.height;
 					balloonBehaviour.width = rect.width;
 				}
+				balloonBehaviour.setSpeed(this.balloonSpeed + (function($this) {
+					var $r;
+					var int1 = $this.currentLevel;
+					$r = int1 < 0?4294967296.0 + int1:int1 + 0.0;
+					return $r;
+				}(this)) * this.changeInSpeed);
 				var balloonSprite;
 				var component1 = balloon.getComponent("Sprite_4");
 				balloonSprite = component1;
 				balloonBehaviour.addAnswer(this.currentAnswers[i].toString());
 				balloonSprite.x.set__(Math.random() * (areaForBalloon - balloonBehaviour.width * 2) + balloonBehaviour.width * 0.5 + areaForBalloon * i);
 				balloonSprite.y.set__(flambe_System.get_stage().get_height() + balloonBehaviour.height);
-				this.owner.addChild(balloon);
+				this.owner.addChild(balloon,true);
 			}
 			urgame_Balloon.balloonsPerQ = this.currentAnswers.length;
 			urgame_Signals.nextQSignalEmitted = 0;
@@ -6436,39 +6461,43 @@ urgame_Game.prototype = $extend(flambe_Component.prototype,{
 		}
 	}
 	,showScore: function() {
-		this.scoreArea.disposeChildren();
-		this.scoreSprite.set_text("Score : " + Std.string((function($this) {
+		var bg = new flambe_display_ImageSprite(urgame_Main.assetPack.getTexture("ScoreBoard@2x"));
+		bg.scaleX.set__(bg.scaleY.set__(0.25));
+		bg.x.set__(flambe_System.get_stage().get_width() - bg.texture.get_width() * 0.25 - urgame_Constants.padding);
+		bg.y.set__(urgame_Constants.padding);
+		this.scoreArea.addChild(new flambe_Entity().add(bg));
+		this.scoreSprite.set_text("" + Std.string((function($this) {
 			var $r;
 			var $int = $this.playerScore;
 			$r = $int < 0?4294967296.0 + $int:$int + 0.0;
 			return $r;
 		}(this))));
-		this.scoreArea.add(this.scoreSprite);
-		var rect = flambe_display_Sprite.getBounds(this.scoreArea);
-		this.scoreSprite.x.set__(flambe_System.get_stage().get_width() - rect.width - urgame_Constants.padding);
-		this.scoreSprite.y.set__(urgame_Constants.padding);
-		var whitebg = new flambe_display_FillSprite(16777215,rect.width + urgame_Constants.padding,rect.height + urgame_Constants.padding);
-		this.scoreArea.addChild(new flambe_Entity().add(whitebg));
-		whitebg.x.set__(this.scoreSprite.x.get__() - urgame_Constants.padding * 0.5);
-		whitebg.y.set__(this.scoreSprite.y.get__() - urgame_Constants.padding * 0.5);
-		this.scoreArea.remove(this.scoreSprite);
-		this.scoreArea.addChild(new flambe_Entity().add(this.scoreSprite));
+		this.scoreSprite.set_align(flambe_display_TextAlign.Center);
+		var scoreEntity = new flambe_Entity().add(this.scoreSprite);
+		this.scoreArea.addChild(scoreEntity);
+		var rect = flambe_display_Sprite.getBounds(scoreEntity);
+		this.scoreSprite.x.set__(bg.x.get__() + bg.texture.get_width() * 0.5 * 0.25);
+		this.scoreSprite.y.set__(bg.y.get__() + bg.texture.get_height() * 0.5 * 0.25 - rect.height * 0.5);
 		this.owner.addChild(this.scoreArea);
 	}
 	,showQuestion: function() {
+		this.currentQuestion = this.questionArea.displayNextQ();
 		if(this.currentQuestion != null) {
-			this.qArea.x.set__(0);
-			this.qArea.y.set__(flambe_System.get_stage().get_height() - this.qArea.height.get__());
-			if(this.questionAreaEntity == null) this.questionAreaEntity = new flambe_Entity(); else this.questionAreaEntity = this.questionAreaEntity;
-			this.questionAreaEntity.disposeChildren();
-			this.questionAreaEntity.add(this.qArea);
-			var questionEntity = new flambe_Entity();
-			var questionSprite = new flambe_display_TextSprite(urgame_Main.font,this.currentQuestion.question);
-			questionSprite.set_align(flambe_display_TextAlign.Center);
-			questionEntity.addChild(new flambe_Entity().add(questionSprite));
-			flambe_System.root.addChild(this.questionAreaEntity.addChild(questionEntity));
-			questionSprite.x.set__(flambe_System.get_stage().get_width() * 0.5);
-			questionSprite.y.set__(flambe_display_Sprite.getBounds(this.questionAreaEntity).height * 0.5 - flambe_display_Sprite.getBounds(questionEntity).height * 0.5);
+			if(this.questionAreaEntity == null) {
+				if(this.questionAreaEntity == null) this.questionAreaEntity = new flambe_Entity(); else this.questionAreaEntity = this.questionAreaEntity;
+				var image = new flambe_display_ImageSprite(urgame_Main.assetPack.getTexture("QuestionBoard@2x"));
+				image.x.set__(flambe_System.get_stage().get_width() * 0.5 - image.texture.get_width() * 0.5);
+				image.y.set__(flambe_System.get_stage().get_height() - image.texture.get_height());
+				this.questionAreaEntity.add(image);
+				this.questionEntity = new flambe_Entity();
+				this.questionSprite = new flambe_display_TextSprite(urgame_Main.font,this.currentQuestion.question);
+				this.questionSprite.set_align(flambe_display_TextAlign.Center);
+				this.questionEntity.addChild(new flambe_Entity().add(this.questionSprite));
+				this.questionSprite.x.set__(image.texture.get_width() * 0.5);
+				this.questionSprite.y.set__(image.texture.get_height() * 0.5 - flambe_display_Sprite.getBounds(this.questionEntity).height * 0.5);
+				this.questionAreaEntity.addChild(this.questionEntity);
+				this.owner.addChild(this.questionAreaEntity);
+			} else this.questionSprite.set_text(this.currentQuestion.question);
 		}
 	}
 	,removeBalloons: function() {
@@ -6479,14 +6508,46 @@ urgame_Game.prototype = $extend(flambe_Component.prototype,{
 			this.owner.removeChild(this.balloons[i]);
 		}
 		this.showNextQuestion = 1;
-		this.createBalloons();
 		this.showQuestion();
+		this.createBalloons();
+	}
+	,updateScore: function() {
+		this.scoreSprite.set_text("" + Std.string((function($this) {
+			var $r;
+			var $int = $this.playerScore;
+			$r = $int < 0?4294967296.0 + $int:$int + 0.0;
+			return $r;
+		}(this))));
 	}
 	,checkAnswer: function() {
 		if(urgame_Game.poppedBalloon != null) {
 			if(urgame_Game.poppedBalloon.answerString == this.currentQuestion.correctAnswer) {
 				this.playerScore++;
-				this.showScore();
+				if((function($this) {
+					var $r;
+					var a = Std["int"]((function($this) {
+						var $r;
+						var $int = $this.playerScore;
+						$r = $int < 0?4294967296.0 + $int:$int + 0.0;
+						return $r;
+					}($this)) % (function($this) {
+						var $r;
+						var int1 = 10;
+						$r = int1 < 0?4294967296.0 + int1:int1 + 0.0;
+						return $r;
+					}($this)));
+					$r = (function($this) {
+						var $r;
+						var int2 = a;
+						$r = int2 < 0?4294967296.0 + int2:int2 + 0.0;
+						return $r;
+					}($this)) == 0;
+					return $r;
+				}(this))) {
+					this.currentLevel++;
+					console.log("Level up");
+				}
+				this.updateScore();
 				urgame_Signals.popBalloon.emit();
 				urgame_Game.poppedBalloon.resetTouch();
 				urgame_Game.poppedBalloon = null;
@@ -6497,25 +6558,146 @@ urgame_Game.prototype = $extend(flambe_Component.prototype,{
 				this.wrongAnswerSound.play();
 				urgame_Game.poppedBalloon.resetTouch();
 				urgame_Game.poppedBalloon = null;
+				this.lives.dropLife();
 			}
 			console.log("Checking");
 		} else console.log("null");
 	}
 	,endGame: function() {
-		console.log("Game Over");
+		this.owner.dispose();
+		flambe_System.root.addChild(this.gameOverEntity);
 	}
 	,__class__: urgame_Game
+});
+var urgame_Lives = function() {
+	this.acc_y = 0.2;
+	this.speed = [];
+	this.livesArray = [];
+	this.numberOfLives = 5;
+	flambe_Component.call(this);
+};
+$hxClasses["urgame.Lives"] = urgame_Lives;
+urgame_Lives.__name__ = true;
+urgame_Lives.__super__ = flambe_Component;
+urgame_Lives.prototype = $extend(flambe_Component.prototype,{
+	get_name: function() {
+		return "Lives_9";
+	}
+	,displayLives: function() {
+		this.currentLife = 0;
+		this.container = new flambe_Entity();
+		var _g1 = 0;
+		var _g = this.numberOfLives;
+		while(_g1 < _g) {
+			var i = _g1++;
+			this.speed[i] = 0.5;
+			var image = new flambe_display_ImageSprite(urgame_Main.assetPack.getTexture("TamamaSmall@2x"));
+			image.scaleX.set__(image.scaleY.set__(0.25));
+			image.x.set__((function($this) {
+				var $r;
+				var a;
+				{
+					var b = image.texture.get_width();
+					a = ($this.numberOfLives - i - 1) * b;
+				}
+				$r = (function($this) {
+					var $r;
+					var $int = a;
+					$r = $int < 0?4294967296.0 + $int:$int + 0.0;
+					return $r;
+				}($this)) * 0.25;
+				return $r;
+			}(this)) + urgame_Constants.padding);
+			image.y.set__(urgame_Constants.padding);
+			this.livesArray.push(image);
+			this.owner.addChild(new flambe_Entity().add(image));
+		}
+	}
+	,dropLife: function() {
+		this.speed[this.currentLife++] = 0.5;
+		if((function($this) {
+			var $r;
+			var $int = $this.currentLife;
+			$r = $int < 0?4294967296.0 + $int:$int + 0.0;
+			return $r;
+		}(this)) == (function($this) {
+			var $r;
+			var int1 = $this.numberOfLives;
+			$r = int1 < 0?4294967296.0 + int1:int1 + 0.0;
+			return $r;
+		}(this))) urgame_Signals.gameOver.emit();
+	}
+	,onAdded: function() {
+	}
+	,onUpdate: function(dt) {
+		var _g1 = 0;
+		var _g = this.currentLife;
+		while(_g1 < _g) {
+			var i = _g1++;
+			var _g2 = this.livesArray[i].y;
+			_g2.set__(_g2.get__() + this.speed[i]);
+			this.speed[i] += this.acc_y;
+		}
+	}
+	,__class__: urgame_Lives
 });
 var urgame_Main = function() { };
 $hxClasses["urgame.Main"] = urgame_Main;
 urgame_Main.__name__ = true;
 urgame_Main.main = function() {
 	flambe_System.init();
+	var preloader = new flambe_Entity();
+	var preloaderHeight = 5;
+	preloader.add(new flambe_display_FillSprite(16777215,flambe_System.get_stage().get_width(),preloaderHeight));
+	((function($this) {
+		var $r;
+		var component = preloader.getComponent("Sprite_4");
+		$r = component;
+		return $r;
+	}(this))).x.set__(0);
+	((function($this) {
+		var $r;
+		var component1 = preloader.getComponent("Sprite_4");
+		$r = component1;
+		return $r;
+	}(this))).y.set__(flambe_System.get_stage().get_height() * 0.5 - flambe_display_Sprite.getBounds(preloader).height * 0.5);
+	flambe_System.root.addChild(preloader);
 	var manifest = flambe_asset_Manifest.fromAssets("bootstrap");
 	var loader = flambe_System.loadAssetPack(manifest);
+	loader.progressChanged.connect(function() {
+		preloader.add(new flambe_display_FillSprite(255,loader.get_progress() / loader.get_total() * (flambe_System.get_stage().get_width() - 100),preloaderHeight));
+		((function($this) {
+			var $r;
+			var component2 = preloader.getComponent("Sprite_4");
+			$r = component2;
+			return $r;
+		}(this))).x.set__(0);
+		((function($this) {
+			var $r;
+			var component3 = preloader.getComponent("Sprite_4");
+			$r = component3;
+			return $r;
+		}(this))).y.set__(flambe_System.get_stage().get_height() * 0.5 - flambe_display_Sprite.getBounds(preloader).height * 0.5);
+	});
 	loader.get(urgame_Main.onSuccess);
 	var manifestFonts = flambe_asset_Manifest.fromAssets("fonts");
 	var loaderFont = flambe_System.loadAssetPack(manifestFonts);
+	loaderFont.progressChanged.connect(function() {
+		preloader.add(new flambe_display_FillSprite(255,flambe_System.get_stage().get_width() - 100 + loader.get_progress() / loader.get_total() * 100,preloaderHeight));
+		((function($this) {
+			var $r;
+			var component4 = preloader.getComponent("Sprite_4");
+			$r = component4;
+			return $r;
+		}(this))).x.set__(0);
+		((function($this) {
+			var $r;
+			var component5 = preloader.getComponent("Sprite_4");
+			$r = component5;
+			return $r;
+		}(this))).y.set__(flambe_System.get_stage().get_height() * 0.5 - flambe_display_Sprite.getBounds(preloader).height * 0.5);
+		if(loaderFont.get_progress() == loaderFont.get_total()) urgame_Main.init();
+	});
 	loaderFont.get(urgame_Main.onSuccessFont);
 };
 urgame_Main.onSuccessFont = function(pack) {
@@ -6704,7 +6886,7 @@ flambe_System.volume = new flambe_animation_AnimatedFloat(1);
 flambe_System._platform = flambe_platform_html_HtmlPlatform.instance;
 flambe_System._calledInit = false;
 flambe_Log.logger = flambe_System.createLogger("flambe");
-flambe_asset_Manifest.__meta__ = { obj : { assets : [{ fonts : [{ bytes : 744, md5 : "abe48661625426bc379b115b1b1c163f", name : "Arial.bmfc"},{ bytes : 62781, md5 : "a846e319f4a9656b1e1c364e100d9878", name : "Arial.fnt"},{ bytes : 51674, md5 : "c8c5ade18141e62cd89a7a7df421bf07", name : "Arial_0.png"}], bootstrap : [{ bytes : 174759, md5 : "0d9b2688c0519c631582fed77694938c", name : "background.png"},{ bytes : 14362, md5 : "e1596bccd504f6c6a78888500ba6ffbb", name : "balloon.png"},{ bytes : 2797, md5 : "a50625a21376f53b87e52b128aa96d4c", name : "balloonparticle.png"},{ bytes : 14821, md5 : "c501b67d6ac761a60eeba5b8e80ef7c4", name : "BaloonAnim/atlas0.png"},{ bytes : 22686, md5 : "d4f2560824c38a30982d4f8d7bf2593e", name : "BaloonAnim/library.json"},{ bytes : 32, md5 : "84e2cc9cd070375d953c0bcf19696cc1", name : "BaloonAnim/md5"},{ bytes : 1, md5 : "003d62073d0b493a14427a45413fc595", name : "BaloonAnim/version"},{ bytes : 11572, md5 : "02f99231f1b810e18a11a879da857ef9", name : "sounds/slip.wav"},{ bytes : 22478, md5 : "b08f472c1455045ac1c20711a7d5ab6a", name : "sounds/sound.wav"}], json : [{ bytes : 23058, md5 : "796b9ee5c950a2f9f28eca97f13bdbdd", name : "questions.json"}]}]}};
+flambe_asset_Manifest.__meta__ = { obj : { assets : [{ fonts : [{ bytes : 744, md5 : "abe48661625426bc379b115b1b1c163f", name : "Arial.bmfc"},{ bytes : 62781, md5 : "a846e319f4a9656b1e1c364e100d9878", name : "Arial.fnt"},{ bytes : 51674, md5 : "c8c5ade18141e62cd89a7a7df421bf07", name : "Arial_0.png"}], bootstrap : [{ bytes : 174759, md5 : "0d9b2688c0519c631582fed77694938c", name : "background.png"},{ bytes : 14362, md5 : "e1596bccd504f6c6a78888500ba6ffbb", name : "balloon.png"},{ bytes : 2797, md5 : "a50625a21376f53b87e52b128aa96d4c", name : "balloonparticle.png"},{ bytes : 14821, md5 : "c501b67d6ac761a60eeba5b8e80ef7c4", name : "BaloonAnim/atlas0.png"},{ bytes : 22686, md5 : "d4f2560824c38a30982d4f8d7bf2593e", name : "BaloonAnim/library.json"},{ bytes : 32, md5 : "84e2cc9cd070375d953c0bcf19696cc1", name : "BaloonAnim/md5"},{ bytes : 1, md5 : "003d62073d0b493a14427a45413fc595", name : "BaloonAnim/version"},{ bytes : 7701, md5 : "519b3c48412a582296c9076f874a1d83", name : "BaloonAnim.assets/images/Bitmap 1.png.png"},{ bytes : 7701, md5 : "519b3c48412a582296c9076f874a1d83", name : "gameover.png"},{ bytes : 10428, md5 : "644e80c0ef3c9f60d786f503caea8b89", name : "QuestionBoard@2x.png"},{ bytes : 11621, md5 : "efe0b06b7ab09b2aba72c9f3188fe2c7", name : "ScoreBoard@2x.png"},{ bytes : 11572, md5 : "02f99231f1b810e18a11a879da857ef9", name : "sounds/slip.wav"},{ bytes : 22478, md5 : "b08f472c1455045ac1c20711a7d5ab6a", name : "sounds/sound.wav"},{ bytes : 17674, md5 : "545dcca886b73d01fad95ef4256883e5", name : "TamamaSmall@2x.png"}], json : [{ bytes : 23058, md5 : "796b9ee5c950a2f9f28eca97f13bdbdd", name : "questions.json"}]}]}};
 flambe_asset_Manifest._supportsCrossOrigin = (function() {
 	var detected = (function() {
 		if(js_Browser.get_navigator().userAgent.indexOf("Linux; U; Android") >= 0) return false;
